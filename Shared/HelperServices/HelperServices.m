@@ -154,8 +154,13 @@
     ///                 Update: [Sep 2025] Apple did fix things in macOS 15.0 Sequoia! We're also unregistering strange helpers in some cases when they message us over MFMessagePort. And before we enable here, we also unregister the helper – Should already be pretty robust even without strange helper detection here.
     ///                     Also see notes elsewhere about `is-strange-helper-alert`. [Sep 2025]
     
-    if (@available(macOS 13.0, *)) {
-        
+    /// [Personal fork / macOS 27] Force the legacy pre-Ventura launchd.plist path instead of SMAppService.
+    ///     SMAppService's `registerAndReturnError:` refuses ad-hoc/unsigned builds (no paid Apple Developer ID) with
+    ///     "Unable to validate code signature on plist ... Code: -67056" -> SMAppServiceErrorDomain code 3.
+    ///     The legacy `launchctl bootstrap` + hand-written LaunchAgent plist path below has no such signature
+    ///     requirement, so use it unconditionally for this self-built, non-notarized copy.
+    if (@available(macOS 13.0, *) && NO) {
+
         dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INTERACTIVE, 0), ^{
                 
             /// Cleanup
@@ -530,13 +535,12 @@ NSString *launchctl_print(NSString *identifier) {
 }
 
 + (BOOL) strangeHelperIsRegisteredWithLaunchdIdentifier: (NSString *)identifier {
-    
+
     /// Check if helper is registered with launchd from some other location
-    
-    if (@available(macOS 13.0, *)) {
-        assert(false && "This method's helper method +[executablePathForLaunchdIdentifier:] doesn't work on macOS 13.0+ as of [Sep 2025]");
-        return NO;
-    }
+
+    /// [Personal fork / macOS 27] We force the legacy (pre-SMAppService) launchd.plist path everywhere,
+    ///     so `executablePathForLaunchdIdentifier:`'s legacy `launchctl list` parsing is valid here too --
+    ///     removed the original "doesn't work on macOS 13.0+" guard that assumed SMAppService was in use.
     NSString *launchdPath = [self executablePathForLaunchdIdentifier: identifier];
     BOOL launchdPathExists = launchdPath.length != 0;
     
@@ -556,9 +560,12 @@ NSString *launchctl_print(NSString *identifier) {
 }
 
 + (NSString *)executablePathForLaunchdIdentifier:(NSString *)identifier {
-    
-    if (@available(macOS 13.0, *)) {
-        
+
+    /// [Personal fork / macOS 27] Force the legacy `launchctl list` parsing path below (the `else` branch),
+    ///     since we always register via the legacy launchd.plist mechanism now (see `enableHelperAsUserAgent:`),
+    ///     never via SMAppService -- so the SMAppService caveats in the disabled branch below don't apply here.
+    if (@available(macOS 13.0, *) && NO) {
+
         /// Notes on getting **executable path**:
         /// For SMAppService the only way to reliably get the executable path is the `sfltool dumpbtm` command. But it requires sudo permissions, so we can't do it in the background programmatically.
         /// Under 14.2.1 I saw that `launchctl print gui/501/com.nuebling.mac-mouse-fix.helper` sometimes contains the executable path, but only under these circumstances:

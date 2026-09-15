@@ -74,17 +74,21 @@ import Foundation
             try replaceDict(dict)
         
         } catch KeychainError.itemNotFound {
-            
+
             do {
                 try createItem(dict: [:])
                 set(keyPath, value: value)
-                
+
             } catch {
-                assert(false)
+                /// [Personal fork / macOS 27] Keychain iCloud sync (`kSecAttrSynchronizable`) requires a
+                ///     properly provisioned Apple Developer signature, which this ad-hoc/self-built copy
+                ///     doesn't have. Failing here is expected for this build -- don't crash over it, since
+                ///     this only affects license/trial persistence, not mouse gesture functionality.
+                DDLogWarn("SecureStorage.set: createItem failed with error: \(error)")
             }
-            
+
         } catch {
-            assert(false)
+            DDLogWarn("SecureStorage.set: failed with error: \(error)")
         }
     }
     
@@ -113,7 +117,7 @@ import Foundation
             return dict as! NSDictionary
             
         } catch {
-            assert(false)
+            DDLogWarn("SecureStorage.readDict: failed to unarchive keychain item, error: \(error)")
             throw KeychainError.invalidItemData
         }
     }
