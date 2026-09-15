@@ -188,6 +188,8 @@ static CFMachPortRef _kbModEventTap;
     /// TODO: @crash Implement Solution Idea 2.
     
     _kbModPriority = priority;
+    /// The tap is only created in post-check init (after Accessibility is granted), but SwitchMaster can call this earlier -> SLEventTapEnable(NULL) segfaults.
+    if (_kbModEventTap == NULL) return;
     CGEventTapEnable(_kbModEventTap, _kbModPriority == kMFModifierPriorityActiveListen);
 }
 

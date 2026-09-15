@@ -135,6 +135,9 @@ void resetState_Unsafe(void) {
     /// - I did some rudimentary performance testing here (when we were still calling `resetState`) and it seems that `[Scroll startReceiving]` and `[Scroll stopReceiving]` have practically no impact on CPU usage even when spamming a button with such settings that SwitchMaster calls start/stop on each button press and release.
 
     
+    /// Tap is only created once Accessibility is granted (see `load_Manual`/post-check init) -- but SwitchMaster can call this earlier.
+    if (_eventTap == NULL) return;
+
     /// DEBUG
     DDLogDebug("Scroll.m: startReceiving. isReceiving: %d", CGEventTapIsEnabled(_eventTap));
 
@@ -142,19 +145,21 @@ void resetState_Unsafe(void) {
     if (!CGEventTapIsEnabled(_eventTap)) {
         CGEventTapEnable(_eventTap, true);
     }
-    
+
 }
 
 + (void)stopReceiving {
-    
+
     /// Notes:
     /// - Are there other things we should enable/disable here? ScrollModifiers.reactToModiferChange() comes to mind
     /// - Also see notes for `- startReceiving`
-    
+
+    if (_eventTap == NULL) return;
+
     /// DEBUG
     DDLogDebug("Scroll.m: stopReceiving. isReceiving: %d", CGEventTapIsEnabled(_eventTap));
-    
-    
+
+
     /// Stop event tap
     if (CGEventTapIsEnabled(_eventTap)) {
         CGEventTapEnable(_eventTap, false);
@@ -163,6 +168,7 @@ void resetState_Unsafe(void) {
 
 + (BOOL)isReceiving {
     /// At the time of writing we just need this for debugging. Should'nt ever need it for something else I think.
+    if (_eventTap == NULL) return NO;
     return CGEventTapIsEnabled(_eventTap);
 }
 

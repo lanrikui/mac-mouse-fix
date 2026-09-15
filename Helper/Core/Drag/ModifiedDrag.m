@@ -196,7 +196,8 @@ void initDragState_Unsafe(void) {
     _drag.isSuspended = NO;
     
     [_drag.outputPlugin initializeWithDragState:&_drag]; /// We just want to reset the plugin state here. The plugin will already hold ref to `_drag`. So this is not super pretty/semantic
-    
+
+    if (_drag.eventTap == nil) return; /// Tap is only created in `load_Manual`, which runs after Accessibility is granted.
     CGEventTapEnable(_drag.eventTap, true);
     DDLogDebug("Enabled drag eventTap");
 }
@@ -431,8 +432,8 @@ void deactivate_Unsafe(BOOL cancel) {
     _drag.activationState = kMFModifiedInputActivationStateNone;
     
     /// Disable eventTap
-    CGEventTapEnable(_drag.eventTap, false);
-    
+    if (_drag.eventTap != nil) CGEventTapEnable(_drag.eventTap, false);
+
     /// Debug
     DDLogDebug("modifiedDrag disabled drag eventTap. Caller info: %@", [SharedUtility callerInfo]);
 }

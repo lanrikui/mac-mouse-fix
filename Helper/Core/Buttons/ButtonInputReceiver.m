@@ -35,13 +35,16 @@ static CFMachPortRef _eventTap;
 }
 
 + (void)start {
+    if (_eventTap == NULL) return; /// Tap is only created in `load_Manual`, which runs after Accessibility is granted -- but SwitchMaster can call this earlier.
     CGEventTapEnable(_eventTap, true);
 }
 + (void)stop {
+    if (_eventTap == NULL) return;
     CGEventTapEnable(_eventTap, false);
 }
 + (BOOL)isRunning {
     /// Only used for debug inspection at the time of writing. Shouldn't need it for anything else.
+    if (_eventTap == NULL) return NO;
     return CGEventTapIsEnabled(_eventTap);
 }
 
